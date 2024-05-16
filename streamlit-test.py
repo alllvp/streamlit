@@ -1,4 +1,6 @@
 import streamlit as st
+import pickle
+import sklearns
 
 st.title("Housing Prices Prediction")
 
@@ -8,7 +10,7 @@ We have trained several models to predict the price of a house based on features
 
 """)
 
-import pickle
+
 model = pickle.load(open('trained_pipe_knn.sav', 'rb'))
 
 LotArea = st.number_input("Lot Area")
