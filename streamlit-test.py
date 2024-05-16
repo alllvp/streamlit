@@ -1,6 +1,6 @@
 import streamlit as st
 import pickle
-import sklearns
+import sklearn
 
 st.title("Housing Prices Prediction")
 
