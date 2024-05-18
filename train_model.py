@@ -10,17 +10,17 @@ from sklearn.metrics import make_scorer, mean_squared_error
 from sklearn.impute import SimpleImputer
 import joblib
 
-# Загрузка данных
+# Loading data
 train_df = pd.read_csv('train.csv')
 test_df = pd.read_csv('test.csv')
 
-# Категориальные признаки для Ordinal Encoding
+# Categorical features for Ordinal Encoding
 ordinal_features = [
     'ExterQual', 'ExterCond', 'BsmtQual', 'BsmtCond', 'HeatingQC', 'KitchenQual', 
     'FireplaceQu', 'GarageQual', 'GarageCond', 'PoolQC'
 ]
 
-# Определение порядка категорий для OrdinalEncoder
+# Determining the order of categories for OrdinalEncoder
 ordinal_categories = [
     ['Po', 'Fa', 'TA', 'Gd', 'Ex'],  # ExterQual
     ['Po', 'Fa', 'TA', 'Gd', 'Ex'],  # ExterCond
@@ -34,7 +34,7 @@ ordinal_categories = [
     ['Fa', 'TA', 'Gd', 'Ex']  # PoolQC
 ]
 
-# Категориальные признаки для One-Hot Encoding
+# Determining the order of categories for One-Hot Encoding
 onehot_features = [
     'MSZoning', 'Street', 'Alley', 'LotShape', 'LandContour', 'Utilities', 
     'LotConfig', 'LandSlope', 'Neighborhood', 'Condition1', 'Condition2', 
@@ -45,7 +45,7 @@ onehot_features = [
     'SaleType', 'SaleCondition'
 ]
 
-# Числовые признаки
+# Numerical characteristics
 numeric_features = [
     'MSSubClass', 'LotFrontage', 'LotArea', 'OverallQual', 'OverallCond', 
     'YearBuilt', 'YearRemodAdd', 'MasVnrArea', 'BsmtFinSF1', 'BsmtFinSF2', 
@@ -56,7 +56,7 @@ numeric_features = [
     '3SsnPorch', 'ScreenPorch', 'PoolArea', 'MiscVal', 'MoSold', 'YrSold'
 ]
 
-# Функция для заполнения пропусков
+# Function to fill in the blanks
 def fill_missing_data(df):
     all_features = numeric_features + ordinal_features + onehot_features
     missing_columns = [col for col in all_features if col not in df.columns]
@@ -73,7 +73,7 @@ def fill_missing_data(df):
     
     return df
 
-# Предобработка данных
+# Data preprocessing
 def preprocess_data(X, preprocessor=None, fit=False):
     imputer_cat = SimpleImputer(strategy='constant', fill_value='missing')
     imputer_num = SimpleImputer(strategy='constant', fill_value=0)
@@ -109,27 +109,27 @@ def preprocess_data(X, preprocessor=None, fit=False):
         X_transformed = preprocessor.transform(X)
         return X_transformed
 
-# Заполнение пропусков
+# Filling in the blanks
 train_df = fill_missing_data(train_df)
 test_df = fill_missing_data(test_df)
 
-# Подготовка тренировочных данных
+# Preparing training data
 X_train_raw = train_df.drop(columns='SalePrice')
 y_train = train_df['SalePrice']
 
-# Преобразование тренировочных данных
+# Transforming training data
 X_train, preprocessor = preprocess_data(X_train_raw, fit=True)
 
-# Логарифмируем целевую переменную
+# Logarithm the target variable
 y_train_log = np.log(y_train)
 
-# Определение пайплайна с SelectKBest и моделью XGBoost
+# Defining a pipeline with SelectKBest and XGBoost model
 pipeline = Pipeline([
     ('select', SelectKBest(score_func=mutual_info_regression)),
     ('model', xgb.XGBRegressor(objective='reg:squarederror', random_state=42))
 ])
 
-# Параметры для RandomizedSearchCV
+# Options for RandomizedSearchCV
 param_grid = {
     'select__k': range(10, X_train.shape[1] + 1),
     'model__n_estimators': [100, 200, 300],
@@ -139,24 +139,24 @@ param_grid = {
     'model__colsample_bytree': [0.6, 0.8, 1.0]
 }
 
-# Определение функции оценки
+# Definition of the evaluation function
 def rmse(y_true, y_pred):
     return np.sqrt(mean_squared_error(y_true, y_pred))
 
 rmse_scorer = make_scorer(rmse, greater_is_better=False)
 
-# Сеточный поиск с кросс-валидацией
+# Grid search with cross-validation
 kf = KFold(n_splits=5, shuffle=True, random_state=42)
 grid_search = RandomizedSearchCV(pipeline, param_grid, cv=kf, scoring=rmse_scorer, n_iter=100, verbose=1, random_state=42)
 grid_search.fit(X_train, y_train_log)
 
-# Лучшие параметры модели
+# Best model parameters
 best_params = grid_search.best_params_
 print(f"Лучшие параметры модели: {best_params}")
 
-# Использование лучших параметров для модели
+# Using the best parameters for the model
 best_model = grid_search.best_estimator_
 
-# Сохранение модели и предобработчика
+# Saving the model and preprocessor
 joblib.dump(best_model, 'best_model.pkl')
 joblib.dump(preprocessor, 'preprocessor.pkl')
