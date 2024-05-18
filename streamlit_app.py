@@ -1,14 +1,11 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-import xgboost as xgb
-from sklearn.model_selection import train_test_split, RandomizedSearchCV, KFold
-from sklearn.preprocessing import StandardScaler, OrdinalEncoder, OneHotEncoder
-from sklearn.compose import ColumnTransformer
-from sklearn.feature_selection import SelectKBest, mutual_info_regression
-from sklearn.pipeline import Pipeline
-from sklearn.metrics import make_scorer, mean_squared_error
-from sklearn.impute import SimpleImputer
+import joblib
+
+# Загрузка модели и предобработчика
+best_model = joblib.load('best_model.pkl')
+preprocessor = joblib.load('preprocessor.pkl')
 
 # Категориальные признаки для Ordinal Encoding
 ordinal_features = [
@@ -52,93 +49,31 @@ numeric_features = [
     '3SsnPorch', 'ScreenPorch', 'PoolArea', 'MiscVal', 'MoSold', 'YrSold'
 ]
 
-# Функция для заполнения пропусков
-def fill_missing_data(df):
-    all_features = numeric_features + ordinal_features + onehot_features
-    missing_columns = [col for col in all_features if col not in df.columns]
-    if missing_columns:
-        st.warning(f"Columns not found in data: {missing_columns}")
-
-    for col in numeric_features:
-        if col in df.columns:
-            df[col] = df[col].fillna(df[col].median())
-    
-    for col in ordinal_features + onehot_features:
-        if col in df.columns:
-            df[col] = df[col].fillna(df[col].mode()[0])
-    
-    return df
-
-# Предобработка данных
-def preprocess_data(X, preprocessor=None, fit=False):
-    imputer_cat = SimpleImputer(strategy='constant', fill_value='missing')
-    imputer_num = SimpleImputer(strategy='constant', fill_value=0)
-
-    numeric_transformer = Pipeline(steps=[
-        ('imputer', imputer_num),
-        ('scaler', StandardScaler())
-    ])
-
-    ordinal_transformer = Pipeline(steps=[
-        ('imputer', imputer_cat),
-        ('ordinal', OrdinalEncoder(categories=ordinal_categories, handle_unknown='use_encoded_value', unknown_value=-1))
-    ])
-
-    onehot_transformer = Pipeline(steps=[
-        ('imputer', imputer_cat),
-        ('onehot', OneHotEncoder(handle_unknown='ignore'))
-    ])
-
-    if preprocessor is None:
-        preprocessor = ColumnTransformer(
-            transformers=[
-                ('num', numeric_transformer, numeric_features),
-                ('ord', ordinal_transformer, ordinal_features),
-                ('onehot', onehot_transformer, onehot_features)
-            ]
-        )
-
-    if fit:
-        X_transformed = preprocessor.fit_transform(X)
-        return X_transformed, preprocessor
-    else:
-        X_transformed = preprocessor.transform(X)
-        return X_transformed
+# Предобработка данных для предсказания
+def preprocess_input(input_data):
+    df = pd.DataFrame([input_data])
+    df = fill_missing_data(df)
+    X_transformed = preprocess_data(df, preprocessor=preprocessor, fit=False)
+    return X_transformed
 
 def main():
     st.title("House Price Prediction")
 
-    uploaded_file = st.file_uploader("Upload your input CSV file", type=["csv"])
-    if uploaded_file is not None:
-        df = pd.read_csv(uploaded_file)
-        st.write("Data uploaded successfully")
+    input_data = {}
+    for feature in numeric_features:
+        input_data[feature] = st.number_input(feature, value=0.0)
+    
+    for feature in ordinal_features:
+        input_data[feature] = st.selectbox(feature, ordinal_categories[ordinal_features.index(feature)])
+    
+    for feature in onehot_features:
+        input_data[feature] = st.selectbox(feature, ['missing', *df[feature].unique()])
 
-        # Заполнение пропусков
-        df = fill_missing_data(df)
-
-        # Ввод значений для предсказания
-        input_data = {}
-        for feature in numeric_features:
-            if feature in df.columns:
-                input_data[feature] = st.number_input(feature, value=float(df[feature].median()))
-
-        for feature in ordinal_features:
-            if feature in df.columns:
-                input_data[feature] = st.selectbox(feature, ordinal_categories[ordinal_features.index(feature)])
-
-        for feature in onehot_features:
-            if feature in df.columns:
-                input_data[feature] = st.selectbox(feature, df[feature].unique())
-
-        input_df = pd.DataFrame([input_data])
-        X_input, _ = preprocess_data(input_df, preprocessor=preprocessor, fit=False)
-
-        if st.button("Predict"):
-            model = xgb.XGBRegressor(objective='reg:squarederror', random_state=42)
-            model.load_model('trained_pipe_knn.json')  # Загрузка сохраненной модели
-            prediction_log = model.predict(X_input)
-            prediction = np.exp(prediction_log)
-            st.write("The predicted house price is:", prediction[0])
+    if st.button("Predict"):
+        X_input = preprocess_input(input_data)
+        prediction_log = best_model.predict(X_input)
+        prediction = np.exp(prediction_log)
+        st.write("The predicted house price is:", prediction[0])
 
 if __name__ == '__main__':
     main()
