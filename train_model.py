@@ -11,8 +11,8 @@ from sklearn.impute import SimpleImputer
 import joblib
 
 # Загрузка данных
-train_df = pd.read_csv('train_data.csv')
-test_df = pd.read_csv('test_data.csv')
+train_df = pd.read_csv('train.csv')
+test_df = pd.read_csv('test.csv')
 
 # Категориальные признаки для Ordinal Encoding
 ordinal_features = [
