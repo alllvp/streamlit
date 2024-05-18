@@ -7,17 +7,17 @@ from sklearn.preprocessing import StandardScaler, OrdinalEncoder, OneHotEncoder
 from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
 
-# Загрузка модели и предобработчика
+# Loading the model and preprocessor
 best_model = joblib.load('best_model.pkl')
 preprocessor = joblib.load('preprocessor.pkl')
 
-# Категориальные признаки для Ordinal Encoding
+# Categorical features for Ordinal Encoding
 ordinal_features = [
     'ExterQual', 'ExterCond', 'BsmtQual', 'BsmtCond', 'HeatingQC', 'KitchenQual', 
     'FireplaceQu', 'GarageQual', 'GarageCond', 'PoolQC'
 ]
 
-# Определение порядка категорий для OrdinalEncoder
+# Determining the order of categories for OrdinalEncoder
 ordinal_categories = [
     ['Po', 'Fa', 'TA', 'Gd', 'Ex'],  # ExterQual
     ['Po', 'Fa', 'TA', 'Gd', 'Ex'],  # ExterCond
@@ -31,7 +31,7 @@ ordinal_categories = [
     ['Fa', 'TA', 'Gd', 'Ex']  # PoolQC
 ]
 
-# Категориальные признаки для One-Hot Encoding
+# Determining the order of categories for One-Hot Encoding
 onehot_features = [
     'MSZoning', 'Street', 'Alley', 'LotShape', 'LandContour', 'Utilities', 
     'LotConfig', 'LandSlope', 'Neighborhood', 'Condition1', 'Condition2', 
@@ -42,7 +42,7 @@ onehot_features = [
     'SaleType', 'SaleCondition'
 ]
 
-# Числовые признаки
+# Numerical characteristics
 numeric_features = [
     'MSSubClass', 'LotFrontage', 'LotArea', 'OverallQual', 'OverallCond', 
     'YearBuilt', 'YearRemodAdd', 'MasVnrArea', 'BsmtFinSF1', 'BsmtFinSF2', 
@@ -53,14 +53,14 @@ numeric_features = [
     '3SsnPorch', 'ScreenPorch', 'PoolArea', 'MiscVal', 'MoSold', 'YrSold'
 ]
 
-# Предобработка данных для предсказания
+# Data preprocessing for prediction
 def preprocess_input(input_data):
     df = pd.DataFrame([input_data])
     df = fill_missing_data(df)
     X_transformed = preprocess_data(df, preprocessor=preprocessor, fit=False)
     return X_transformed
 
-# Функция для заполнения пропусков (если необходима)
+# Function to fill in the blanks
 def fill_missing_data(df):
     all_features = numeric_features + ordinal_features + onehot_features
     missing_columns = [col for col in all_features if col not in df.columns]
@@ -77,7 +77,7 @@ def fill_missing_data(df):
     
     return df
 
-# Предобработка данных
+# Data preprocessing
 def preprocess_data(X, preprocessor=None, fit=False):
     imputer_cat = SimpleImputer(strategy='constant', fill_value='missing')
     imputer_num = SimpleImputer(strategy='constant', fill_value=0)
