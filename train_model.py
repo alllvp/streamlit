@@ -152,7 +152,7 @@ grid_search.fit(X_train, y_train_log)
 
 # Best model parameters
 best_params = grid_search.best_params_
-print(f"Лучшие параметры модели: {best_params}")
+print(f"Best model parameters: {best_params}")
 
 # Using the best parameters for the model
 best_model = grid_search.best_estimator_
