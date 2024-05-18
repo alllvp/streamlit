@@ -1,7 +1,5 @@
-# Используем официальный образ Python
-FROM mcr.microsoft.com/devcontainers/python:3.10
-
-# Установим зависимости
+# Copy the requirements file into the container
 COPY requirements.txt /tmp/requirements.txt
-RUN pip install --upgrade pip
-RUN pip install -r /tmp/requirements.txt
+
+# Install the Python dependencies from requirements.txt
+RUN pip install --no-cache-dir -r /tmp/requirements.txt
